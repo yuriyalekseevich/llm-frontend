@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/data/models/query.dart';
 import 'package:frontend/presentation/cubits/chat_cubit/chat_cubit.dart';
+import 'package:frontend/presentation/screens/examples_screen.dart';
 import 'package:frontend/widgets/temperature_slider.dart';
 import 'package:frontend/widgets/token_counter.dart';
 import '../../data/repositories/llm_repository.dart';
@@ -33,6 +34,7 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
   double _temperature = 0.2;
   int _maxTokens = 300;
   String? _selectedPersona;
+  List<String> examples = [];
 
   // Available personas
   final List<Map<String, dynamic>> _personas = [
@@ -103,6 +105,7 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
       temperature: _temperature,
       maxTokens: _maxTokens,
       persona: _selectedPersona,
+      examples: examples.map((e) => Message(role: 'example', content: e)).toList(),
     );
 
     cubit.sendMessage(query);
@@ -221,7 +224,7 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
   }
 
   Widget _buildInstructions() {
-    return  Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Card(
@@ -253,7 +256,7 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
             ),
           ),
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
       ],
     );
   }
@@ -355,6 +358,48 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
           // Persona Selection
           _buildPersonaSelection(),
 
+          const SizedBox(height: 16),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ExamplesScreen(
+                    personaId: _selectedPersona ?? '',
+                    initialExamples: examples,
+                  ),
+                ),
+              ).then(
+                (value) {
+                  if (value != null && value is List<String>) {
+                    setState(() {
+                      examples = value;
+                    });
+                  }
+                },
+              );
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  examples.isEmpty ? Icons.add : Icons.edit,
+                  size: 16,
+                  color: Colors.purple,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  examples.isNotEmpty
+                      ? 'Edit examples - ${examples.length} added examples'
+                      : 'Preffer to add examples - tap here',
+                  style: TextStyle(
+                    color: Colors.purple.shade600,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 16),
 
           // Temperature Control

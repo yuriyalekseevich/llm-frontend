@@ -31,31 +31,61 @@ class LlmRepository {
   }
 
   Query _applyPersonaToQuery(Query originalQuery) {
-    if (originalQuery.persona == null) return originalQuery;
+    // Early return if no persona → nothing to change
+    if (originalQuery.persona == null) {
+      return originalQuery;
+    }
 
     final personaPrompt = _getPersonaSystemPrompt(originalQuery.persona!);
 
-    // If using messages array
-    if (originalQuery.messages != null) {
-      final newMessages = [
-        Message(role: 'system', content: personaPrompt),
-        ...originalQuery.messages!,
-      ];
-      return originalQuery.copyWith(messages: newMessages);
-    }
-    // If using single text field
-    else if (originalQuery.text != null) {
-      final newMessages = [
-        Message(role: 'system', content: personaPrompt),
-        Message(role: 'user', content: originalQuery.text!),
-      ];
-      return originalQuery.copyWith(
-        messages: newMessages,
-        text: null, // Clear text field since we're using messages
+    // We'll always build a messages list (it's more powerful and consistent)
+    List<Message> messages = [];
+
+    // 1. Always start with system prompt (persona instructions)
+    messages.add(
+      Message(role: 'system', content: personaPrompt),
+    );
+
+    // 2. If user provided examples → add them as a single assistant message
+    //    with clear instruction so the model understands it's few-shot examples
+    if (originalQuery.examples?.isNotEmpty == true) {
+      final rawExamples = originalQuery.examples!.map((e) => e.content.trim()).join('\n---\n');
+
+final assistantContent = '''
+**Examples of the exact response style I want you to strictly imitate** (short, condition-based, reasons, no fluff):
+
+$rawExamples
+
+--- END OF EXAMPLES ---
+
+**Now answer the following user question using exactly this format and tone:**
+''';
+
+      messages.add(
+        Message(role: 'assistant', content: assistantContent.trim()),
       );
     }
 
-    return originalQuery;
+    // 3. Add the actual user input (prefer messages > text)
+    if (originalQuery.messages != null && originalQuery.messages!.isNotEmpty) {
+      // Append existing messages after examples (user might have already added some history)
+      messages.addAll(originalQuery.messages!);
+    } else if (originalQuery.text != null && originalQuery.text!.trim().isNotEmpty) {
+      messages.add(
+        Message(role: 'user', content: originalQuery.text!.trim()),
+      );
+    } else {
+      // Edge case: no real user input at all → don't break, but log/warn in real app
+      messages.add(
+        const Message(role: 'user', content: '[No question provided]'),
+      );
+    }
+
+    // Return updated query using messages (clear text field to avoid confusion)
+    return originalQuery.copyWith(
+      messages: messages,
+      text: null,
+    );
   }
 
   String _getPersonaSystemPrompt(String persona) {

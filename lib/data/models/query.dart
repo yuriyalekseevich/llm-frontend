@@ -7,6 +7,7 @@ class Query extends Equatable {
   final double topP;
   final int maxTokens;
   final String? persona; // Add persona field
+  final List<Message>? examples; // assistant example responses
   final String reasoningEffort;
   final int? seed;
   final List<String>? stop;
@@ -18,6 +19,7 @@ class Query extends Equatable {
     this.topP = 0.95,
     this.maxTokens = 300, // Set default to 300 as requested
     this.persona, // Add persona
+    this.examples,
     this.reasoningEffort = 'none',
     this.seed,
     this.stop,
@@ -25,8 +27,8 @@ class Query extends Equatable {
 
   Map<String, dynamic> toJson() => {
         if (text != null) 'text': text,
-        if (messages != null)
-          'messages': messages?.map((m) => m.toJson()).toList(),
+        if (messages != null) 'messages': messages?.map((m) => m.toJson()).toList(),
+        if (examples != null) 'examples': examples?.map((m) => m.toJson()).toList(),
         'temperature': temperature,
         'top_p': topP,
         'max_tokens': maxTokens,
@@ -39,6 +41,7 @@ class Query extends Equatable {
   Query copyWith({
     String? text,
     List<Message>? messages,
+    List<Message>? examples,
     double? temperature,
     double? topP,
     int? maxTokens,
@@ -50,6 +53,7 @@ class Query extends Equatable {
     return Query(
       text: text ?? this.text,
       messages: messages ?? this.messages,
+      examples: examples ?? this.examples,
       temperature: temperature ?? this.temperature,
       topP: topP ?? this.topP,
       maxTokens: maxTokens ?? this.maxTokens,
@@ -68,6 +72,7 @@ class Query extends Equatable {
         topP,
         maxTokens,
         persona,
+        examples,
         reasoningEffort,
         seed,
         stop,
